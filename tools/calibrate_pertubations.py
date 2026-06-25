@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
 files = [
     "data/pertubation1.csv",
@@ -11,23 +12,27 @@ files = [
     "data/pertubation3.csv",
 ]
 
-# def plot_raw_data():
 
-#     fig = plt.figure(figsize=(8, 6))
-#     ax = fig.add_subplot(111, projection="3d")
+def plot_raw_data():
 
-#     for file, color in files:
-#         df = pd.read_csv(file, header=0, skipinitialspace=True)
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection="3d")
 
-#         ax.scatter(df.x, df.y, df.z, c=df.angle, label=file, s=50)
+    for file, color in zip(files, ["red", "green", "blue"]):
+        df = pd.read_csv(file, header=0, skipinitialspace=True)
 
-#     ax.set_xlabel("X")
-#     ax.set_ylabel("Y")
-#     ax.set_zlabel("Z")
-#     ax.set_title("3D Scatter Plot")
-#     ax.legend()
-#     plt.tight_layout()
-#     plt.show()
+        ax.scatter(df.x, df.y, df.z, c=color, label=file, s=50)
+
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    ax.set_title("3D Scatter Plot")
+    ax.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+# plot_raw_data()
 
 # merge by mean
 data = []
@@ -46,7 +51,19 @@ mask = norms < np.percentile(norms, 95)
 data = data[:, mask]
 
 
-class ShittyDataset(Dataset):
+# fig = plt.figure(figsize=(8, 6))
+# ax = fig.add_subplot(111, projection="3d")
+# ax.scatter(*data[1:4], c=data[0], label=file, s=50)
+# ax.set_xlabel("X")
+# ax.set_ylabel("Y")
+# ax.set_zlabel("Z")
+# ax.set_title("3D Scatter Plot")
+# ax.legend()
+# plt.tight_layout()
+# plt.show()
+
+
+class RingsDataset(Dataset):
     def __init__(self, data):
         self.angles = torch.tensor(data[0].T)
         self.points = torch.tensor(data[1:4].T)
@@ -58,10 +75,10 @@ class ShittyDataset(Dataset):
         return self.angles[index], self.points[index]
 
 
-loader = DataLoader(ShittyDataset(data), batch_size=16, shuffle=True)
+loader = DataLoader(RingsDataset(data), batch_size=16, shuffle=True)
 
 
-class ShittyEllipse(nn.Module):
+class RingsEllipse(nn.Module):
     def __init__(self):
         super().__init__()
         self.phase = nn.Parameter(torch.randn(1).double())
@@ -73,10 +90,10 @@ class ShittyEllipse(nn.Module):
         return x.T @ self.map.T
 
 
-model = ShittyEllipse()
+model = RingsEllipse()
 optim = torch.optim.AdamW(model.parameters(), lr=0.001)
 
-for epoch in range(1000):
+for epoch in tqdm(range(200), desc="training"):
 
     for angles, points in loader:
         est_points = model(angles)
@@ -86,7 +103,8 @@ for epoch in range(1000):
         loss.backward()
         optim.step()
 
-        print("loss: ", loss.item())
+        if epoch % 50 == 0:
+            print("loss: ", loss.item())
 
 
 t = torch.linspace(0, 6.28, 100)
@@ -100,7 +118,7 @@ fig = plt.figure(figsize=(8, 6))
 ax = fig.add_subplot(111, projection="3d")
 ax.scatter(*data[1:4], c=data[0], label=file, s=50)
 
-ax.scatter(ellipse[:, 0], ellipse[:, 1], ellipse[:, 2], "k", c=t)
+ax.scatter(ellipse[:, 0], ellipse[:, 1], ellipse[:, 2], marker="^", c=t)
 
 ax.set_xlabel("X")
 ax.set_ylabel("Y")

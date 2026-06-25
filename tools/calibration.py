@@ -203,5 +203,5 @@ def measure_and_save():
 
 
 if __name__ == "__main__":
-    measure_and_save()
+    # measure_and_save()
     calibrate()

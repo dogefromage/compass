@@ -86,13 +86,9 @@ void Compass::update_inertial() {
 }
 
 void Compass::start_needle() {
-    // // Ircheltümpel (Allmendsee)
-    // float lat = 47.397669378250384;
-    // float lon = 8.544475133621676;
-
-    // polyterasse center
-    float lat = 47.37616894307332;
-    float lon = 8.546724748932393;
+    // // polyterasse center
+    // float lat = 47.37616894307332;
+    // float lon = 8.546724748932393;
 
     Eigen::Matrix3f target_earth_local_matrix = get_earth_local_matrix(lat, lon);
     Eigen::Vector3f earth_target_position = get_earth_position(target_earth_local_matrix);
