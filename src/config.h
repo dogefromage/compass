@@ -9,5 +9,4 @@
 
 #define AHRS_WARMUP_CYCLES 100
 
-// sets location to irchel park
-#define SPOOF_GPS false
+#define SPOOF_GPS true

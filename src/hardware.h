@@ -34,7 +34,7 @@ void initialize_hardware();
 void read_inertial_sensors(Eigen::Vector3f& lin_acc, Eigen::Vector3f& angular_vel,
                            Eigen::Vector3f& mag_field, Eigen::Vector3f& body_field_raw);
 
-Eigen::Vector3f calculate_earth_field(Eigen::Vector3f& earth_position);
+Eigen::Vector3f calculate_earth_field_gauss(Eigen::Vector3f& earth_position);
 
 void set_coils(float x, float y);
 

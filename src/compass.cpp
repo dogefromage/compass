@@ -16,6 +16,8 @@ void Compass::set_coils_by_local_vector(Eigen::Vector3f& local_desired_direction
      */
     float raw_coil_strength_gauss = 2.72f;
 
+    Eigen::Vector3f local_desired_direction_norm = local_desired_direction.normalized();
+
     // account for the duty cycle of switching between driving and measuring
     float drive_duty_cycle = TIME_DRIVE_PERIOD_MICROS /
                              (float)(TIME_DRIVE_PERIOD_MICROS + TIME_REFRACTORY_PERIOD_MICROS);
@@ -24,7 +26,11 @@ void Compass::set_coils_by_local_vector(Eigen::Vector3f& local_desired_direction
     // we need to compensate for the local earth field vector which has 1 gauss.
     // like this we do not exceed the maximum coil strength by the ***triangle inequality***
     Eigen::Vector3f local_drive_gauss =
-        (coil_strength_gauss - 1.0f) * local_desired_direction.normalized() - gnss.local_field;
+        (coil_strength_gauss - 1.0f) * local_desired_direction_norm - gnss.local_field_gauss;
+
+    log_vector("LOCAL_DESIRED_DIRECTION", local_desired_direction_norm);
+    log_vector("LOCAL_FIELD_GAUSS", gnss.local_field_gauss);
+    log_vector("LOCAL_DRIVE_GAUSS", local_drive_gauss);
 
     Eigen::Vector3f local_drive_normed = local_drive_gauss / coil_strength_gauss;
 
@@ -57,32 +63,41 @@ void Compass::update_inertial() {
 
     Eigen::Vector3f local_acc_goal = {0, 0, 9.81};
 
-    Eigen::Vector3f body_acc, angular_vel, body_field, body_field_raw;
-    read_inertial_sensors(body_acc, angular_vel, body_field, body_field_raw);
+    Eigen::Vector3f body_acc_measured, angular_vel, body_field_measured, body_field_raw;
+    read_inertial_sensors(body_acc_measured, angular_vel, body_field_measured, body_field_raw);
 
     // scenario A: needle is undriven and points to north, in which case we do not
     // need to correct the magnetometer reading which is influenced by the needles field
     // scenario B: needle is driven and points to direction, then it must be corrected
     if (_trigger) {
-        body_field = compensate_body_field_by_needle(body_field, last_coil_needle_angle);
+        body_field_measured =
+            compensate_body_field_by_needle(body_field_measured, last_coil_needle_angle);
+    } else {
+        Eigen::Vector2f coil_field =
+            coil_body_matrix * ahrs.vector_local_to_body(gnss.local_field_gauss);
+        float estimated_angle = atan2f(coil_field.y(), coil_field.x());
+        body_field_measured = compensate_body_field_by_needle(body_field_measured, estimated_angle);
     }
 
-    Eigen::Vector3f body_field_proj = project_by_vector(body_field, body_acc);
-    Eigen::Vector3f local_field_proj = project_by_vector(gnss.local_field, local_acc_goal);
+    Eigen::Vector3f body_field_measured_proj =
+        project_by_vector(body_field_measured, ahrs.vector_local_to_body(local_acc_goal));
+    Eigen::Vector3f local_field_proj = project_by_vector(gnss.local_field_gauss, local_acc_goal);
 
     // very important
-    body_field_proj.normalize();
+    body_field_measured_proj.normalize();
     local_field_proj.normalize();
 
-    ahrs.update(inertial_dt, angular_vel, body_acc, local_acc_goal, body_field_proj,
-                local_field_proj);
+    ahrs.update(inertial_dt, angular_vel, body_acc_measured, local_acc_goal,
+                body_field_measured_proj, local_field_proj);
 
-    log_vector("ACC LOCAL", local_acc_goal);
-    log_vector("ACC BODY", body_acc);
-    log_vector("FIELD LOCAL", local_field_proj);
-    log_vector("FIELD BODY", body_field_proj);
-    log_vector("FIELD RAW", body_field_raw);
-    log_quaternion("ATTITUDE", ahrs.attitude);
+    log_vector("ACC_LOCAL", local_acc_goal);
+    log_vector("ACC_BODY_MEASURED", body_acc_measured);
+    log_vector("FIELD_LOCAL", local_field_proj);
+    log_vector("FIELD_BODY_MEASURED", body_field_measured_proj);
+    // log_vector("FIELD_RAW", body_field_raw);
+
+    // log_quaternion("ATTITUDE", ahrs.attitude);
+    log_tf("LOCAL_BODY_TRANSFORM", ahrs.attitude, Eigen::Vector3f::Zero());
 }
 
 void Compass::start_needle() {
@@ -90,8 +105,19 @@ void Compass::start_needle() {
     // float lat = 47.37616894307332;
     // float lon = 8.546724748932393;
 
-    Eigen::Matrix3f target_earth_local_matrix = get_earth_local_matrix(lat, lon);
-    Eigen::Vector3f earth_target_position = get_earth_position(target_earth_local_matrix);
+    // // Pont Ambroix
+    // float target_lat = 43.717199582831526;
+    // float target_lon = 4.1519610736046895;
+
+    // garte
+    float target_lat = 47.450957853380146;
+    float target_lon = 7.671828585797041;
+    float target_alt = 468.5;
+
+    Eigen::Matrix3f target_earth_local_matrix = get_earth_local_matrix(target_lat, target_lon);
+    Eigen::Vector3f earth_target_position = get_earth_position(target_lat, target_lon, target_alt);
+
+    log_vector("EARTH_TARGET_POSITION", earth_target_position);
 
     Eigen::Vector3f earth_dir = earth_target_position - gnss.earth_position;
     Eigen::Vector3f local_dir = gnss.earth_local_matrix.transpose() * earth_dir;
@@ -113,6 +139,9 @@ void Compass::update() {
         delay(1000);
         return;
     }
+
+    Eigen::Quaternionf earth_local_rot = Eigen::Quaternionf(gnss.earth_local_matrix);
+    log_tf("EARTH_LOCAL_TRANSFORM", earth_local_rot, gnss.earth_position);
 
     switch (state) {
         case CompassState::COMPASS_INERTIAL:

@@ -90,37 +90,37 @@ def run_viser():
             continue
 
         if line:
-            if line.startswith("ATTITUDE wxyz"):
-                data = scanf("ATTITUDE wxyz %f %f %f %f", line)
+            if line.startswith("LOCAL_BODY_TRANSFORM tf_wxyz_xyz"):
+                data = scanf("LOCAL_BODY_TRANSFORM tf_wxyz_xyz %f %f %f %f %f %f %f", line)
                 if data is None:
                     print(f"WARNING weird format: {line}")
                 else:
-                    handle_body.wxyz = np.array(data)
+                    handle_body.wxyz = np.array(data[0:4])
 
-            elif line.startswith("ACC LOCAL xyz"):
-                data = scanf("ACC LOCAL xyz %f %f %f", line)
+            elif line.startswith("ACC_LOCAL xyz"):
+                data = scanf("ACC_LOCAL xyz %f %f %f", line)
                 if data is None:
                     print(f"WARNING weird format: {line}")
                 else:
                     handle_local_acceleration.points = np.array([[[0, 0, 0], np.array(data) / 10.0]])
 
-            elif line.startswith("ACC BODY xyz"):
-                data = scanf("ACC BODY xyz %f %f %f", line)
+            elif line.startswith("ACC_BODY_MEASURED xyz"):
+                data = scanf("ACC_BODY_MEASURED xyz %f %f %f", line)
                 if data is None:
                     print(f"WARNING weird format: {line}")
                 else:
                     handle_body_acceleration.points = np.array([[[0, 0, 0], np.array(data) / 10.0]])
 
-            elif line.startswith("FIELD LOCAL xyz"):
-                data = scanf("FIELD LOCAL xyz %f %f %f", line)
+            elif line.startswith("FIELD_LOCAL xyz"):
+                data = scanf("FIELD_LOCAL xyz %f %f %f", line)
                 if data is None:
                     print(f"WARNING weird format: {line}")
                 else:
                     data = norm_vec(data)
                     handle_local_field.points = np.array([[[0, 0, 0], np.array(data)]])
 
-            elif line.startswith("FIELD BODY xyz"):
-                data = scanf("FIELD BODY xyz %f %f %f", line)
+            elif line.startswith("FIELD_BODY_MEASURED xyz"):
+                data = scanf("FIELD_BODY_MEASURED xyz %f %f %f", line)
                 if data is None:
                     print(f"WARNING weird format: {line}")
                 else:

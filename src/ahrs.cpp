@@ -53,7 +53,7 @@ void AHRS::update_madgwick(float dt, const Eigen::Vector3f& angular_vel,
 
     float mag_weight = 4;
     float acc_weight = 1;
-    float beta = 0.3;
+    float beta = 0.5;
 
     // gradient descent using accelerometer
     Eigen::Matrix<float, 3, 4> acc_jac = madgwick_cost_jac(attitude, local_acc_goal);

@@ -81,7 +81,7 @@ void read_inertial_sensors(Eigen::Vector3f& lin_acc, Eigen::Vector3f& angular_ve
     mag.getEvent(&event);
 
     body_field_raw = {event.magnetic.x, event.magnetic.y, event.magnetic.z};
-    // log_vector("MAG RAW", mag_raw);
+    // log_vector("MAG_RAW", mag_raw);
 
     if ((body_field_raw - last_body_field_raw).norm() > mag_sensor_rejection_threshold &&
         !last_sample_rejected) {
@@ -113,7 +113,7 @@ Eigen::Vector3f compensate_body_field_by_needle(Eigen::Vector3f& body_field, flo
     return body_field - p;
 }
 
-Eigen::Vector3f calculate_earth_field(Eigen::Vector3f& earth_position) {
+Eigen::Vector3f calculate_earth_field_gauss(Eigen::Vector3f& earth_position) {
     geomag::Vector ecef{earth_position.x(), earth_position.y(), earth_position.z()};
     geomag::Vector earth_field = geomag::GeoMag(2027.5, ecef, geomag::WMM2025);
 
@@ -121,6 +121,9 @@ Eigen::Vector3f calculate_earth_field(Eigen::Vector3f& earth_position) {
     res[0] = earth_field.x;
     res[1] = earth_field.y;
     res[2] = earth_field.z;
+
+    res *= 10'000;  // [Gauss/Tesla]
+
     return res;
 }
 

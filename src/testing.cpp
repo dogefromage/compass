@@ -236,3 +236,20 @@ void test_gyro_bias() {
     Serial.println("Done!");
     while (1);
 }
+
+void test_coil_directions() {
+    while (true) {
+        Serial.println("pos X");
+        set_coils(1, 0);
+        delay(2000);
+        Serial.println("pos Y");
+        set_coils(0, 1);
+        delay(2000);
+        Serial.println("neg X");
+        set_coils(-1, 0);
+        delay(2000);
+        Serial.println("neg y");
+        set_coils(0, -1);
+        delay(2000);
+    }
+}

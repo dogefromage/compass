@@ -22,6 +22,14 @@ void setup(void) {
     // test_needle_pertubation();
     // test_needle_pertubation_with_correction();
     // test_gyro_bias();
+    // test_coil_directions();
+
+    // while (1) {
+    //     float angle = 0.785398;
+    //     float cos = cosf(angle);
+    //     float sin = sinf(angle);
+    //     set_coils(cos, sin);
+    // }
 }
 
 void loop(void) {
