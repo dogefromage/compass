@@ -9,4 +9,6 @@
 
 #define AHRS_WARMUP_CYCLES 100
 
-#define SPOOF_GPS true
+#define SPOOF_GPS false
+
+#define SPINNING_RADIUS_METERS (5.0f)

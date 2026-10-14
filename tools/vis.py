@@ -9,25 +9,33 @@ DEVICE = "/dev/ttyACM0"
 BAUD = 115200
 
 
-def add_custom_frame(server: viser.ViserServer, color, name):
+def add_custom_frame(server: viser.ViserServer, name):
 
     frame = server.scene.add_frame(
         f"/{name}",
-        show_axes=False,
+        show_axes=True,
         origin_radius=0,
+        axes_length=1,
+        axes_radius=0.05,
     )
 
-    server.scene.add_arrows(
-        f"/{name}/xyz",
-        colors=color,
-        points=np.array(
-            [
-                [[0, 0, 0], [1, 0, 0]],
-                [[0, 0, 0], [0, 1, 0]],
-                [[0, 0, 0], [0, 0, 1]],
-            ]
-        ),
-    )
+    # server.scene.add_arrows(
+    #     f"/{name}/xyz",
+    #     colors=np.array(
+    #         [
+    #             [1.0, 0.0, 0.0],
+    #             [0.0, 1.0, 0.0],
+    #             [0.0, 0.0, 1.0],
+    #         ]
+    #     ),
+    #     points=np.array(
+    #         [
+    #             [[0, 0, 0], [1, 0, 0]],
+    #             [[0, 0, 0], [0, 1, 0]],
+    #             [[0, 0, 0], [0, 0, 1]],
+    #         ]
+    #     ),
+    # )
 
     return frame
 
@@ -51,7 +59,10 @@ def run_viser():
 
     server = viser.ViserServer()
 
-    handle_body = add_custom_frame(server, (255, 0, 0), "body")
+    handle_body = add_custom_frame(
+        server,
+        "body",
+    )
     server.scene.add_grid("/local")
 
     handle_body_acceleration = server.scene.add_arrows(

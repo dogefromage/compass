@@ -11,3 +11,5 @@ void test_needle_pertubation_with_correction();
 void test_gyro_bias();
 
 void test_coil_directions();
+
+void test_accelerometer();

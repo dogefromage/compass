@@ -144,9 +144,9 @@ def calibrate():
     plot_points(points, "raw measurements")
     for i in range(3):
         plt.plot(
-            [p[0], semi_axes[0][i]],
-            [p[1], semi_axes[1][i]],
-            [p[2], semi_axes[2][i]],
+            [p[0], p[0] + semi_axes[0][i]],
+            [p[1], p[1] + semi_axes[1][i]],
+            [p[2], p[2] + semi_axes[2][i]],
             color="red",
         )
     plt.show()
@@ -180,19 +180,18 @@ def measure_and_save():
     body_field_rows = []
 
     sample_count = 1000
-    for i in tqdm(count(), "rotate the sensor!"):
+    with tqdm(desc="rotate the sensor...", total=sample_count) as pbar:
+        while len(body_field_rows) < sample_count:
 
-        line = ser.readline().decode("utf-8").strip()
-        if line:
-            if line.startswith("FIELD RAW xyz"):
-                data = scanf("FIELD RAW xyz %f %f %f", line)
-                if data is None:
-                    print(f"WARNING weird format: {line}")
-                else:
-                    body_field_rows.append(data)
-
-        if len(body_field_rows) >= sample_count:
-            break
+            line = ser.readline().decode("utf-8").strip()
+            if line:
+                if line.startswith("FIELD_BODY_RAW xyz"):
+                    data = scanf("FIELD_BODY_RAW xyz %f %f %f", line)
+                    if data is None:
+                        print(f"WARNING weird format: {line}")
+                    else:
+                        body_field_rows.append(data)
+                        pbar.update(1)
 
     points = np.array(body_field_rows)
 
@@ -203,5 +202,5 @@ def measure_and_save():
 
 
 if __name__ == "__main__":
-    # measure_and_save()
+    measure_and_save()
     calibrate()

@@ -26,6 +26,8 @@ class Compass {
 
     void init();
 
+    void spin_needle();
+
     void set_coils_by_local_vector(Eigen::Vector3f& local_desired_direction);
 
     void set_trigger(bool trigger);

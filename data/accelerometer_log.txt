@@ -1,0 +1,37 @@
+Starting!!!
+waiting 4
+waiting 3
+waiting 2
+waiting 1
+Align device with axis X+ pointing upwards: starting in 30s
+Beginning measurement... measuring for 10 seconds
+Done
+X+ xyz 9.58596 0.07917 -1.86487
+Align device with axis X- pointing upwards: starting in 30s
+Beginning measurement... measuring for 10 seconds
+Done
+X- xyz -9.83494 0.27002 -1.92989
+Align device with axis Y+ pointing upwards: starting in 30s
+Beginning measurement... measuring for 10 seconds
+Done
+Y+ xyz -0.09753 9.75042 -2.13221
+Align device with axis Y- pointing upwards: starting in 30s
+Beginning measurement... measuring for 10 seconds
+Done
+Y- xyz -0.34842 -9.32130 -1.92874
+Align device with axis Z+ pointing upwards: starting in 30s
+Beginning measurement... measuring for 10 seconds
+Done
+Z+ xyz -0.07037 0.58975 7.92953
+Align device with axis Z- pointing upwards: starting in 30s
+Beginning measurement... measuring for 10 seconds
+Done
+Z- xyz -0.25013 0.05163 -11.71817
+
+
+X+  9.58596  0.07917 -1.86487
+X- -9.83494  0.27002 -1.92989
+Y+ -0.09753  9.75042 -2.13221
+Y- -0.34842 -9.32130 -1.92874
+Z+ -0.07037  0.58975  7.92953
+Z- -0.25013  0.05163 -11.71817

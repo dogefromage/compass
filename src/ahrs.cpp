@@ -51,7 +51,7 @@ void AHRS::update_madgwick(float dt, const Eigen::Vector3f& angular_vel,
     Eigen::Vector4f q_dot =
         0.5 * Eigen::Vector4f(att_omega.w(), att_omega.x(), att_omega.y(), att_omega.z());
 
-    float mag_weight = 4;
+    float mag_weight = 3;
     float acc_weight = 1;
     float beta = 0.5;
 

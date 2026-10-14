@@ -31,8 +31,9 @@ extern Eigen::Matrix<float, 2, 3> coil_body_matrix;
 
 void initialize_hardware();
 
-void read_inertial_sensors(Eigen::Vector3f& lin_acc, Eigen::Vector3f& angular_vel,
-                           Eigen::Vector3f& mag_field, Eigen::Vector3f& body_field_raw);
+void read_accelerometer(Eigen::Vector3f& lin_acc, Eigen::Vector3f& lin_acc_raw);
+void read_magnetometer(Eigen::Vector3f& body_field, Eigen::Vector3f& body_field_raw);
+void read_gyro(Eigen::Vector3f& angular_vel, Eigen::Vector3f& angular_vel_raw);
 
 Eigen::Vector3f calculate_earth_field_gauss(Eigen::Vector3f& earth_position);
 

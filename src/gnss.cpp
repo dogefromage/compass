@@ -98,14 +98,15 @@ void GNSS::update_coordinate_systems() {
 
 void GNSS::update() {
 #if SPOOF_GPS
-    // // irchel park
-    // gnss_lat = 47.39772392969787;
-    // gnss_lon = 8.543186485361696;
+    // irchel park
+    gnss_lat = 47.39772392969787;
+    gnss_lon = 8.543186485361696;
+    gnss_alt = 400;
 
-    // büre garte
-    gnss_lat = 47.45100098191752;
-    gnss_lon = 7.671724327829716;
-    gnss_alt = 468.5;
+    // // büre garte
+    // gnss_lat = 47.45100098191752;
+    // gnss_lon = 7.671724327829716;
+    // gnss_alt = 468.5;
 
     valid = true;
 #else
@@ -128,5 +129,8 @@ void GNSS::update() {
 
     if (valid) {
         update_coordinate_systems();
+        log_format("GNSS valid: %.8f, %.8f / %.2f\n", gnss_lat, gnss_lon, gnss_alt);
+    } else {
+        log_format("GNSS invalid\n");
     }
 }

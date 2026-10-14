@@ -13,14 +13,17 @@ Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
 
 HardwareSerial gpsSerial(1);
 
-Eigen::Matrix<float, 2, 3> coil_body_matrix =
-    (Eigen::Matrix<float, 2, 3>() << 0.707, -0.707, 0, -0.707, -0.707, 0).finished();
+Eigen::Matrix<float, 2, 3> coil_body_matrix{};
 
 bool last_sample_rejected = false;
 Eigen::Vector3f last_body_field_raw;
 float mag_sensor_rejection_threshold = 30;
 
 Eigen::Vector3f gyro_bias{0.002731, -0.002209, 0.013324};
+
+// tools/accelerometer_cal.py
+Eigen::Vector3f accelerometer_bias{-0.16923833, 0.236615, -1.940725};
+Eigen::Vector3f accelerometer_scale{1.01008089, 1.02857425, 0.99842119};
 
 void initialize_hardware() {
     pinMode(PIN_TRIGGER, INPUT_PULLUP);
@@ -62,21 +65,27 @@ void initialize_hardware() {
 
     // init gps
     gpsSerial.begin(9600, SERIAL_8N1, PIN_GPS_RX, PIN_GPS_TX);  // For GPS Module
+
+    // coil body matrix
+    // coil_body_matrix << 0.707, -0.707, 0, -0.707, -0.707, 0; // OLD
+    float r2 = sqrtf(2) / 2.0f;
+    coil_body_matrix << 0, r2, r2, 0, r2, -r2;
 }
 
-void read_inertial_sensors(Eigen::Vector3f& lin_acc, Eigen::Vector3f& angular_vel,
-                           Eigen::Vector3f& mag_field, Eigen::Vector3f& body_field_raw) {
+void read_accelerometer(Eigen::Vector3f& lin_acc, Eigen::Vector3f& lin_acc_raw) {
     sensors_event_t event;
-
-    // ACCELEROMETER
 
     accel.getEvent(&event);
 
-    lin_acc[0] = event.acceleration.x;
-    lin_acc[1] = event.acceleration.y;
-    lin_acc[2] = event.acceleration.z;
+    lin_acc_raw[0] = event.acceleration.x;
+    lin_acc_raw[1] = event.acceleration.y;
+    lin_acc_raw[2] = event.acceleration.z;
 
-    // MAGNETOMETER
+    lin_acc = accelerometer_scale.cwiseProduct(lin_acc_raw - accelerometer_bias);
+}
+
+void read_magnetometer(Eigen::Vector3f& body_field, Eigen::Vector3f& body_field_raw) {
+    sensors_event_t event;
 
     mag.getEvent(&event);
 
@@ -92,17 +101,19 @@ void read_inertial_sensors(Eigen::Vector3f& lin_acc, Eigen::Vector3f& angular_ve
         last_sample_rejected = false;
     }
 
-    mag_field = mag_correction_map * (body_field_raw - mag_correction_offset);
+    body_field = mag_correction_map * (body_field_raw - mag_correction_offset);
+}
 
-    // ANGULAR VEL
+void read_gyro(Eigen::Vector3f& angular_vel, Eigen::Vector3f& angular_vel_raw) {
+    sensors_event_t event;
 
     gyro.getEvent(&event);
 
-    angular_vel[0] = event.gyro.x;
-    angular_vel[1] = event.gyro.y;
-    angular_vel[2] = event.gyro.z;
+    angular_vel_raw[0] = event.gyro.x;
+    angular_vel_raw[1] = event.gyro.y;
+    angular_vel_raw[2] = event.gyro.z;
 
-    angular_vel -= gyro_bias;
+    angular_vel = angular_vel_raw - gyro_bias;
 }
 
 Eigen::Vector3f compensate_body_field_by_needle(Eigen::Vector3f& body_field, float needle_angle) {

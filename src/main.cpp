@@ -3,6 +3,7 @@
 #include "Arduino.h"
 #include "compass.h"
 #include "hardware.h"
+#include "logging.h"
 #include "testing.h"
 
 Compass compass;
@@ -23,6 +24,7 @@ void setup(void) {
     // test_needle_pertubation_with_correction();
     // test_gyro_bias();
     // test_coil_directions();
+    // test_accelerometer();
 
     // while (1) {
     //     float angle = 0.785398;
@@ -30,10 +32,16 @@ void setup(void) {
     //     float sin = sinf(angle);
     //     set_coils(cos, sin);
     // }
+
+    set_logging_divisor(100);
 }
 
 void loop(void) {
-    delay(10);
+    increment_log_cycle();
+
+    // delay(10);
     compass.set_trigger(!digitalRead(PIN_TRIGGER));
     compass.update();
+
+    log_format("\n\n");
 }

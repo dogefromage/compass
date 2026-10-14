@@ -7,6 +7,14 @@ void Compass::init() {
     last_inertial_micros = micros();
 }
 
+void Compass::spin_needle() {
+    float t = micros() / 1'000'000.0f;
+    float x = 6.28f * 0.5f * t;
+    float a = sinf(x);
+    float b = cosf(x);
+    set_coils(a, b);
+}
+
 void Compass::set_coils_by_local_vector(Eigen::Vector3f& local_desired_direction) {
     /**
      * using test_coil_field_strength i measured the coils to be 6x stronger than the
@@ -15,6 +23,14 @@ void Compass::set_coils_by_local_vector(Eigen::Vector3f& local_desired_direction
      * theoretically the coils are suppost to be 2.28 Gauss by hardware choice
      */
     float raw_coil_strength_gauss = 2.72f;
+
+    float remaining_distance = local_desired_direction.norm();
+    log_format("REMAINING_DISTANCE %.2f meters\n", remaining_distance);
+
+    if (remaining_distance < SPINNING_RADIUS_METERS) {
+        spin_needle();
+        return;
+    }
 
     Eigen::Vector3f local_desired_direction_norm = local_desired_direction.normalized();
 
@@ -41,11 +57,11 @@ void Compass::set_coils_by_local_vector(Eigen::Vector3f& local_desired_direction
     Eigen::Vector2f coils_inputs = coil_body_matrix * body_drive_normed;
     set_coils(coils_inputs.x(), coils_inputs.y());
 
-    // record this, it represents the direction the needle goes actually in the coil coordinates
-    Eigen::Vector2f coil_last_driven_needle_dir =
-        coil_body_matrix * ahrs.vector_local_to_body(local_desired_direction);
-    last_coil_needle_angle =
-        atan2f(coil_last_driven_needle_dir.y(), coil_last_driven_needle_dir.x());
+    // // record this, it represents the direction the needle goes actually in the coil coordinates
+    // Eigen::Vector2f coil_last_driven_needle_dir =
+    //     coil_body_matrix * ahrs.vector_local_to_body(local_desired_direction);
+    // last_coil_needle_angle =
+    //     atan2f(coil_last_driven_needle_dir.y(), coil_last_driven_needle_dir.x());
 }
 
 void Compass::set_trigger(bool trigger) {
@@ -63,38 +79,43 @@ void Compass::update_inertial() {
 
     Eigen::Vector3f local_acc_goal = {0, 0, 9.81};
 
-    Eigen::Vector3f body_acc_measured, angular_vel, body_field_measured, body_field_raw;
-    read_inertial_sensors(body_acc_measured, angular_vel, body_field_measured, body_field_raw);
+    Eigen::Vector3f body_acc_measured, body_acc_raw, angular_vel, angular_vel_raw,
+        body_field_measured, body_field_raw;
+    read_accelerometer(body_acc_measured, body_acc_raw);
+    read_gyro(angular_vel, angular_vel_raw);
+    read_magnetometer(body_field_measured, body_field_raw);
 
-    // scenario A: needle is undriven and points to north, in which case we do not
-    // need to correct the magnetometer reading which is influenced by the needles field
-    // scenario B: needle is driven and points to direction, then it must be corrected
-    if (_trigger) {
-        body_field_measured =
-            compensate_body_field_by_needle(body_field_measured, last_coil_needle_angle);
-    } else {
-        Eigen::Vector2f coil_field =
-            coil_body_matrix * ahrs.vector_local_to_body(gnss.local_field_gauss);
-        float estimated_angle = atan2f(coil_field.y(), coil_field.x());
-        body_field_measured = compensate_body_field_by_needle(body_field_measured, estimated_angle);
-    }
+    // // scenario A: needle is undriven and points to north, in which case we do not
+    // // need to correct the magnetometer reading which is influenced by the needles field
+    // // scenario B: needle is driven and points to direction, then it must be corrected
+    // if (_trigger) {
+    //     body_field_measured =
+    //         compensate_body_field_by_needle(body_field_measured, last_coil_needle_angle);
+    // } else {
+    //     Eigen::Vector2f coil_field =
+    //         coil_body_matrix * ahrs.vector_local_to_body(gnss.local_field_gauss);
+    //     float estimated_angle = atan2f(coil_field.y(), coil_field.x());
+    //     body_field_measured = compensate_body_field_by_needle(body_field_measured,
+    //     estimated_angle);
+    // }
 
-    Eigen::Vector3f body_field_measured_proj =
-        project_by_vector(body_field_measured, ahrs.vector_local_to_body(local_acc_goal));
-    Eigen::Vector3f local_field_proj = project_by_vector(gnss.local_field_gauss, local_acc_goal);
+    // body_field_measured =
+    //     project_by_vector(body_field_measured, ahrs.vector_local_to_body(local_acc_goal));
+    // Eigen::Vector3f local_field = project_by_vector(gnss.local_field_gauss, local_acc_goal);
+    Eigen::Vector3f local_field = gnss.local_field_gauss;
 
     // very important
-    body_field_measured_proj.normalize();
-    local_field_proj.normalize();
+    body_field_measured.normalize();
+    local_field.normalize();
 
-    ahrs.update(inertial_dt, angular_vel, body_acc_measured, local_acc_goal,
-                body_field_measured_proj, local_field_proj);
+    ahrs.update(inertial_dt, angular_vel, body_acc_measured, local_acc_goal, body_field_measured,
+                local_field);
 
     log_vector("ACC_LOCAL", local_acc_goal);
     log_vector("ACC_BODY_MEASURED", body_acc_measured);
-    log_vector("FIELD_LOCAL", local_field_proj);
-    log_vector("FIELD_BODY_MEASURED", body_field_measured_proj);
-    // log_vector("FIELD_RAW", body_field_raw);
+    log_vector("FIELD_LOCAL", local_field);
+    log_vector("FIELD_BODY_MEASURED", body_field_measured);
+    log_vector("FIELD_BODY_RAW", body_field_raw);
 
     // log_quaternion("ATTITUDE", ahrs.attitude);
     log_tf("LOCAL_BODY_TRANSFORM", ahrs.attitude, Eigen::Vector3f::Zero());
@@ -109,13 +130,29 @@ void Compass::start_needle() {
     // float target_lat = 43.717199582831526;
     // float target_lon = 4.1519610736046895;
 
-    // garte
-    float target_lat = 47.450957853380146;
-    float target_lon = 7.671828585797041;
-    float target_alt = 468.5;
+    // // garte
+    // float target_lat = 47.450957853380146;
+    // float target_lon = 7.671828585797041;
+    // float target_alt = 468.5;
+
+    // // baum irchel
+    // float target_lat = 47.398775181909734;
+    // float target_lon = 8.545220010759298;
+    // // float target_alt = 400;  // would be actually 480
+
+    // // baum irchel 2
+    // float target_lat = 47.39901858383265;
+    // float target_lon = 8.544908614874632;
+
+    // GOAL SPÄTSTORFER
+    float target_lat = 47.357152;
+    float target_lon = 8.489720;
+    // float target_alt = 759.3;
 
     Eigen::Matrix3f target_earth_local_matrix = get_earth_local_matrix(target_lat, target_lon);
-    Eigen::Vector3f earth_target_position = get_earth_position(target_lat, target_lon, target_alt);
+    // take gnss altitude to make sure both are at same elevation
+    Eigen::Vector3f earth_target_position =
+        get_earth_position(target_lat, target_lon, gnss.gnss_alt);
 
     log_vector("EARTH_TARGET_POSITION", earth_target_position);
 

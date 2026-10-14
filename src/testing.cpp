@@ -29,8 +29,8 @@ void test_magnetic_regeneration_time() {
 
             delayMicroseconds(delays[i]);
 
-            Eigen::Vector3f body_acc, angular_vel, body_field, body_field_raw;
-            read_inertial_sensors(body_acc, angular_vel, body_field, body_field_raw);
+            Eigen::Vector3f body_field, body_field_raw;
+            read_magnetometer(body_field, body_field_raw);
             avg += body_field;
         }
         avg /= (float)numTests;
@@ -120,7 +120,7 @@ void test_needle_pertubation() {
         delay(50);
 
         // measure
-        read_inertial_sensors(lin_acc, angular_vel, body_field, body_field_raw);
+        read_magnetometer(body_field, body_field_raw);
         min = min.cwiseMin(body_field);
         max = max.cwiseMax(body_field);
 
@@ -160,7 +160,7 @@ void test_needle_pertubation_with_correction() {
     min << 1000, 1000, 1000;
     max << -1000, -1000, -1000;
 
-    Eigen::Vector3f lin_acc, angular_vel, body_field, body_field_raw;
+    Eigen::Vector3f body_field, body_field_raw;
 
     Serial.println("spinning the magnet...");
     Serial.println("");
@@ -180,7 +180,7 @@ void test_needle_pertubation_with_correction() {
         delay(50);
 
         // measure
-        read_inertial_sensors(lin_acc, angular_vel, body_field, body_field_raw);
+        read_magnetometer(body_field, body_field_raw);
 
         Eigen::Vector3f adjusted_body_field = compensate_body_field_by_needle(body_field, angle);
 
@@ -210,16 +210,13 @@ void test_needle_pertubation_with_correction() {
 }
 
 void test_gyro_bias() {
-    /**
-     * before measuring this, remove old bias!
-     */
     Eigen::Vector3f gyro_bias(0, 0, 0);
 
-    Eigen::Vector3f lin_acc, angular_vel, body_field, body_field_raw;
+    Eigen::Vector3f angular_vel, angular_vel_raw;
 
     for (int i = 0; i < 1000; i++) {
-        read_inertial_sensors(lin_acc, angular_vel, body_field, body_field_raw);
-        gyro_bias += angular_vel;
+        read_gyro(angular_vel, angular_vel_raw);
+        gyro_bias += angular_vel_raw;
         delay(2);
     }
 
@@ -252,4 +249,41 @@ void test_coil_directions() {
         set_coils(0, -1);
         delay(2000);
     }
+}
+
+void test_accelerometer() {
+    const char* directions[] = {
+        "X+", "X-", "Y+", "Y-", "Z+", "Z-",
+    };
+
+    for (int i = 4; i > 0; i--) {
+        Serial.print("waiting ");
+        Serial.println(i);
+        delay(1000);
+    }
+
+    for (int i = 0; i < 6; i++) {
+        Serial.print("Align device with axis ");
+        Serial.print(directions[i]);
+        Serial.println(" pointing upwards: starting in 30s");
+        delay(30000);
+        Serial.println("Beginning measurement... measuring for 10 seconds");
+
+        // measure
+        Eigen::Vector3f body_acc, body_acc_raw, body_acc_raw_sum;
+        body_acc_raw_sum = Eigen::Vector3f::Zero();
+
+        int samples = 50;
+        for (int j = 0; j < samples; j++) {
+            read_accelerometer(body_acc, body_acc_raw);
+            body_acc_raw_sum += body_acc_raw;
+            delay(10000 / samples);
+        }
+        body_acc_raw_sum /= (float)samples;
+
+        Serial.println("Done");
+        log_vector(directions[i], body_acc_raw_sum, 5);
+    }
+
+    while (1);
 }

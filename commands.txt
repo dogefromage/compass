@@ -1,0 +1,3 @@
+
+
+pio device monitor | tee "logs/$(date +%F_%H-%M-%S).log"
