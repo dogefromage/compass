@@ -103,11 +103,6 @@ void GNSS::update() {
     gnss_lon = 8.543186485361696;
     gnss_alt = 400;
 
-    // // büre garte
-    // gnss_lat = 47.45100098191752;
-    // gnss_lon = 7.671724327829716;
-    // gnss_alt = 468.5;
-
     valid = true;
 #else
     // Process GPS data from the module

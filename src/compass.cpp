@@ -130,11 +130,6 @@ void Compass::start_needle() {
     // float target_lat = 43.717199582831526;
     // float target_lon = 4.1519610736046895;
 
-    // // garte
-    // float target_lat = 47.450957853380146;
-    // float target_lon = 7.671828585797041;
-    // float target_alt = 468.5;
-
     // // baum irchel
     // float target_lat = 47.398775181909734;
     // float target_lon = 8.545220010759298;
